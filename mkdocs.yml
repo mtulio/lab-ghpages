@@ -1,4 +1,5 @@
 site_name: OpenShift Provider Certification Guide
+site_url: https://mtulio.github.io/lab-ghpages/
 docs_dir: ./docs
 
 theme:
