@@ -41,3 +41,10 @@ sequenceDiagram
   John->>Bob: How about you?
   Bob-->>John: Jolly good!
 ```
+
+
+
+
+## References
+
+- https://squidfunk.github.io/mkdocs-material/reference/diagrams/#configuration
