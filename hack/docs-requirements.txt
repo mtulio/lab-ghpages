@@ -2,3 +2,6 @@
 mkdocs
 mkdocs-material
 mkdocs-mermaid2-plugin
+
+# Require graphviz
+mkdocs-diagrams
