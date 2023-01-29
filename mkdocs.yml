@@ -2,6 +2,13 @@ site_name: OpenShift Provider Certification Guide
 site_url: https://mtulio.github.io/lab-ghpages/
 docs_dir: ./docs
 
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
 theme:
   name: readthedocs
   highlightjs: true
