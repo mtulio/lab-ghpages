@@ -21,10 +21,10 @@ with Diagram("OCP/OKD Cluster", show=False, filename="./opct"):
 
             with Cluster("Plugins"):
                 plugins_group = [
+                    Job("05-ocp-upgrade"),
                     Job("10-kube-conformance"),
-                    Job("10-ocp-conformance"),
-                    Job("10-ocp-upgrade"),
-                    Job("10-artifacts-collector")]
+                    Job("20-ocp-conformance"),
+                    Job("99-artifacts-collector")]
 
     # ded_node >> [sb_pod]
     sb_pod >> plugins_group >> sb_svc
