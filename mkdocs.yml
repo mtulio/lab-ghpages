@@ -1,16 +1,39 @@
 site_name: OpenShift Provider Certification Guide
+site_url: https://mtulio.github.io/lab-ghpages
 docs_dir: ./docs
+dev_addr: 127.0.0.1:8000
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  # - diagrams
+  - diagrams:
+      file_extension: ".diagram.py"
+      max_workers: 5
+  - search
 
 theme:
-  name: readthedocs
+  #name: readthedocs
+  name: material
   highlightjs: true
   hljs_languages:
     - yaml
 nav:
   - 'TODO.md'
-  - "User Guide":
-      - "User Guide": TODO.md
-  - "Support Guide":
-      - "Support Guide": TODO.md
-  - "Developer Guide":
-      - "Development Guide": TODO.md
+  - OPCT:
+    - 'Cluster AWS': opct/cluster-aws.md
+  - Samples:
+    - 'Diagrams Cloud': sample-diagram-cloud.md
+    - 'Diagrams Mermaid': sample-diagram-mermaid.md
+  - 'Lab Docs':
+    - "User Guide":
+        - "User Guide": TODO.md
+    - "Support Guide":
+        - "Support Guide": TODO.md
+    - "Developer Guide":
+        - "Development Guide": TODO.md

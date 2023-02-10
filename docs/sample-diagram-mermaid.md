@@ -1,4 +1,3 @@
-> TODO: Work in Progress!
 
 - Flow diagram
 
@@ -47,4 +46,3 @@ sequenceDiagram
 ## References
 
 - https://squidfunk.github.io/mkdocs-material/reference/diagrams/#configuration
-
