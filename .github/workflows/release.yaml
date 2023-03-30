@@ -18,13 +18,14 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v3.7.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          configuration: ".github/workflows/changelog-configuration.json"
 
+      # https://github.com/mikepenz/release-changelog-builder-action#configuration
       - name: Create Release
         uses: softprops/action-gh-release@v0.1.15
         with:
           body: |
-            # OPCT ${{ steps.get_version.outputs.VERSION }}
-
             ## Changelog
             ${{steps.github_release.outputs.changelog}}
 
