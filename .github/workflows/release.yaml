@@ -15,12 +15,12 @@ jobs:
 
       - name: Build Changelog
         id: github_release
-        uses: mikepenz/release-changelog-builder-action@v3
+        uses: mikepenz/release-changelog-builder-action@v3.7.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
-        uses: mikepenz/action-gh-release@v3.7.0
+        uses: softprops/action-gh-release@v0.1.15
         with:
           body: |
             # OPCT ${{ steps.get_version.outputs.VERSION }}
