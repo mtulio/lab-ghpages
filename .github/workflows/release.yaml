@@ -24,6 +24,8 @@ jobs:
       # https://github.com/mikepenz/release-changelog-builder-action#configuration
       - name: Create Release
         uses: softprops/action-gh-release@v0.1.15
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
             *.txt
