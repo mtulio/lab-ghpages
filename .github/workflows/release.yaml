@@ -20,7 +20,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
-        uses: mikepenz/action-gh-release@v3
+        uses: mikepenz/action-gh-release@v3.7.0
         with:
           body: |
             # OPCT ${{ steps.get_version.outputs.VERSION }}
