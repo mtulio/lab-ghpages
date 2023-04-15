@@ -1,0 +1,70 @@
+---
+name: CI
+'on':
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+  schedule:
+    - cron: "0 5 * * 0"
+
+defaults:
+  run:
+    working-directory: 'mtulio.okd_installer'
+
+jobs:
+
+  # Run linter tests: yaml-lint and ansible-lint.
+  install-clients:
+    name: Install Clients
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10"]
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        path: 'mtulio.okd_installer'
+        submodules: recursive
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    # TODOget clients from cache
+    - name: Start Mock/MotoServer
+      run: tests/run-mock-server-aws.sh
+    - name: Get pip cache dir
+      id: pip-cache
+      run: |
+        echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+    - name: pip cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+    - name: Update pip
+      run: |
+        python -m pip install --upgrade pip
+    - name: Install project dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install 'moto[elbv2,vpc]' flask flask_cors
+    - name: Get ansible cache dir
+      id: ansible-cache
+      run: |
+        echo "dir=${HOME}/.ansible/collections" >> $GITHUB_OUTPUT
+    - name: ansible cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.ansible-cache.outputs.dir }}
+        key: ansible-${{ matrix.python-version }}-${{ hashFiles('**/requirements.yaml') }}
+    - name: Setup Localhost collection
+      run: |
+        echo $PWD
+        git clone -b tests-mock-aws-api https://github.com/mtulio/ansible-collection-okd-installer.git
+        cd ansible-collection-okd-installer/tests
+        ./run-play-steps.sh create_all || true
