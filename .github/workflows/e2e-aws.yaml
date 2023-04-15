@@ -1,5 +1,5 @@
 ---
-name: CI
+name: mock-e2e-aws
 'on':
   pull_request:
   push:
@@ -17,26 +17,52 @@ defaults:
 jobs:
 
   # Run linter tests: yaml-lint and ansible-lint.
-  install-clients:
-    name: Install Clients
+  create_all:
+    name: create-destroy-all
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10"]
+        python-version:
+        - "3.9"
+        profile:
+        - "aws-ha"
+        - "aws-sno"
+        dist_version:
+        - "okd-4.12.0-0"
+
+    # container: ubuntu
+    services:
+      mock_server_moto:
+        image: quay.io/mrbraga/motorserver-patch:latest
+        ports:
+          - 3000:5000
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@master
       with:
+        repository: mtulio/ansible-collection-okd-installer
         path: 'mtulio.okd_installer'
         submodules: recursive
+        ref: tests-mock-aws-api
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+    # Download project - can be removed when using on the repo
+    # - name: Cloding okd-installer
+    #   run: |
+    #     #mkdir -p ${HOME}/.ssh
+    #     #ssh-keygen -o -t rsa -C "ssh@github.com"
+    #     #ssh-keygen -q -t rsa -N '' -f ${HOME}/.ssh/id_rsa <<<y >/dev/null 2>&1
+    #     git clone --recursive -b tests-mock-aws-api git@github.com:mtulio/ansible-collection-okd-installer.git
     # TODOget clients from cache
-    - name: Start Mock/MotoServer
-      run: tests/run-mock-server-aws.sh
+    # - name: Start Mock/MotoServer
+    #   run: |
+    #     set -x
+    #     ./tests/run-mock-server-aws.sh
+    #     podman ps -a
     - name: Get pip cache dir
       id: pip-cache
       run: |
@@ -46,12 +72,12 @@ jobs:
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
-    - name: Update pip
+    - name: update pip
       run: |
         python -m pip install --upgrade pip
-    - name: Install project dependencies
+    - name: Update pip and install dependencies
       run: |
-        pip install -r requirements.txt
+        pip install -r ./requirements.txt
         pip install 'moto[elbv2,vpc]' flask flask_cors
     - name: Get ansible cache dir
       id: ansible-cache
@@ -61,10 +87,136 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.ansible-cache.outputs.dir }}
-        key: ansible-${{ matrix.python-version }}-${{ hashFiles('**/requirements.yaml') }}
-    - name: Setup Localhost collection
+        key: ansible-${{ matrix.python-version }}-${{ hashFiles('**/requirements.yml') }}
+    - name: Install project dependencies
       run: |
-        echo $PWD
-        git clone -b tests-mock-aws-api https://github.com/mtulio/ansible-collection-okd-installer.git
-        cd ansible-collection-okd-installer/tests
-        ./run-play-steps.sh create_all || true
+        cd ./tests
+        ansible-galaxy collection install -r ./../requirements.yml
+        ansible-galaxy collection list
+    - name: Set okd-installer cache dir
+      id: okdi-cache
+      run: |
+        echo "dir=${HOME}/.ansible/okd-installer/bin" >> $GITHUB_OUTPUT
+    - name: okd installer cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.okdi-cache.outputs.dir }}
+        key: okdi-${{ matrix.python-version }}
+
+    # - name: waiting the service to start
+    #   run: |
+    #     cat << EOF > ./ci_wait_for_server.py
+    #     import os
+    #     import time
+
+    #     import urllib.request as urllib
+    #     from urllib.error import URLError
+    #     import socket
+
+    #     EXCEPTIONS = (URLError, socket.timeout, ConnectionResetError)
+
+
+    #     start_ts = time.time()
+    #     expected_port = os.environ.get("MOTO_PORT", "5000")
+    #     expected_host = "http://mock_server_moto:{}/".format(expected_port)
+    #     print("Waiting for service to come up on {}".format(expected_host))
+    #     while True:
+    #         try:
+
+    #             urllib.urlopen(expected_host, timeout=1)
+    #             break
+    #         except EXCEPTIONS:
+    #             elapsed_s = time.time() - start_ts
+    #             if elapsed_s > 120:
+    #                 raise
+
+    #             print(".")
+    #             time.sleep(1)
+    #     EOF
+    #     pip install urllib3
+    #     python ./ci_wait_for_server.py || true
+
+    - name: create config
+      run: |
+        set -x
+        cd ./tests
+        source ./config/${{ matrix.dist_version }}.env
+        cat ./config/${{ matrix.profile }}.vars | envsubst > ./vars-mock.yaml
+        cat ./vars-mock.yaml
+
+    - name: install clients
+      run: |
+        cd ./tests
+        ansible-playbook mtulio.okd_installer.install_clients -e @./vars-mock.yaml
+        tree ~/.ansible/okd-installer/bin || true
+
+    - name: create cluster
+      run: |
+        cd ./tests
+        echo "Running create_all, the stdout will be suprised..."
+        set -x
+        export AWS_MOCK_ENDPOINT_MOTO="http://127.0.0.1:3000"
+        ./run-play-steps.sh create_all > /tmp/create.log
+        tail n 30 /tmp/create.log
+
+        cat ~/.ansible/okd-installer/clusters/aws-ha-okd-412/cluster_state.json || true
+        cat ~/.ansible/okd-installer/clusters/aws-ha-okd-412/install-config-bkp.yaml || true
+
+    - name: destroy cluster
+      run: |
+        cd ./tests
+        echo "Running destroy_cluster, the stdout will be suprised..."
+        set -x
+        export AWS_MOCK_ENDPOINT_MOTO="http://127.0.0.1:3000"
+        ./run-play-steps.sh destroy_cluster > /tmp/destroy.log
+        tail -n 30 /tmp/destroy.log
+
+    # - name: run create_all then destroy
+    #   run: |
+    #     set -x
+    #     echo $PWD
+    #     cd ./tests
+    #     echo $PWD
+    #     #tree -a
+    #     ls -ls collections/ansible_collections/mtulio/okd_installer/
+    #     #mkdir -p ${HOME}/.openshift/
+    #     #echo '{"auths":{"fake":{"auth":"aWQ6cGFzcwo="}}}' > ${HOME}/.openshift/pull-secret-okd-fake.json
+
+    #     #pip install -r collections/ansible_collections/mtulio/okd_installer/requirements.txt
+    #     #ansible-galaxy collection install -r collections/ansible_collections/mtulio/okd_installer/requirements.yml
+    #     ansible-galaxy collection list
+
+    #     tree ~/.ansible/okd-installer/bin || true
+
+    #     export PULL_SECRET_FILE="${PWD}/config/pull-secret-okd-fake.json"
+    #     export CONFIG_PULL_SECRET_FILE="${PWD}/config/pull-secret-okd-fake.json"
+    #     export VERSION_SUFFIX=2023-04-01-051724
+
+    #     ssh-keygen -q -t rsa -N '' -f ${HOME}/.ssh/id_rsa <<<y >/dev/null 2>&1
+    #     export CONFIG_SSH_KEY=$(cat ${HOME}/.ssh/id_rsa.pub)
+    #     #export PLAY_EXTRA_VARS=" -vvv"
+
+    #     cat ./config/aws-ha-okd-4.12.0-0.env | envsubst > ./vars-mock.yaml
+
+    #     #echo -e "\n\nconfig_provider: aws" >> ./vars-mock.yaml
+    #     #echo "config_platform: none" >> ./vars-mock.yaml
+    #     #echo -e "\nprovider: aws" >> ./vars-mock.yaml
+    #     cat ./vars-mock.yaml
+
+    #     ansible-playbook mtulio.okd_installer.install_clients -e @./vars-mock.yaml
+    #     tree ~/.ansible/okd-installer/bin || true
+
+    #     export AWS_MOCK_ENDPOINT_MOTO="http://127.0.0.1:3000"
+    #     ./run-play-steps.sh create_all || true
+
+    #     cat ~/.ansible/okd-installer/clusters/aws-ha-okd-412/cluster_state.json || true
+    #     cat ~/.ansible/okd-installer/clusters/aws-ha-okd-412/install-config-bkp.yaml || true
+
+    #     ./run-play-steps.sh create_all || true
+
+    # - name: run destroy_cluster
+    #   run: |
+    #     set -x
+    #     echo $PWD
+    #     cd ./tests
+    #     ./run-play-steps.sh create_all || true
