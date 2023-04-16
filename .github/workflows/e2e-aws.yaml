@@ -155,6 +155,8 @@ jobs:
         cd ./tests
         echo "Running create_all, the stdout will be suprised..."
         set -x
+        ls collections/ansible_collections/mtulio/okd_installer/playbooks/vars/aws/profiles/SingleReplica/ || true
+        cat /home/runner/work/lab-ghpages/lab-ghpages/mtulio.okd_installer/tests/collections/ansible_collections/mtulio/okd_installer/playbooks/vars/aws/profiles/SingleReplica/network.yaml || true
         export AWS_MOCK_ENDPOINT_MOTO="http://127.0.0.1:3000"
         ./run-play-steps.sh create_all #> /tmp/create.log
         #tail -n 30 /tmp/create.log
