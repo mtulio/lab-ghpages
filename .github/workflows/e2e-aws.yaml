@@ -156,8 +156,8 @@ jobs:
         echo "Running create_all, the stdout will be suprised..."
         set -x
         export AWS_MOCK_ENDPOINT_MOTO="http://127.0.0.1:3000"
-        ./run-play-steps.sh create_all > /tmp/create.log
-        tail -n 30 /tmp/create.log
+        ./run-play-steps.sh create_all #> /tmp/create.log
+        #tail -n 30 /tmp/create.log
 
         cat ~/.ansible/okd-installer/clusters/aws-ha-okd-412/cluster_state.json || true
         cat ~/.ansible/okd-installer/clusters/aws-ha-okd-412/install-config-bkp.yaml || true
