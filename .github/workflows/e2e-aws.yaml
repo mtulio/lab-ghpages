@@ -1,5 +1,5 @@
 ---
-name: mock-e2e-aws
+name: mock-aws-api
 'on':
   pull_request:
   push:
@@ -10,15 +10,15 @@ name: mock-e2e-aws
   schedule:
     - cron: "0 5 * * 0"
 
-# defaults:
-#   run:
-#     working-directory: 'mtulio.okd_installer'
+defaults:
+  run:
+    working-directory: 'mtulio.okd_installer'
 
 jobs:
 
   # Run linter tests: yaml-lint and ansible-lint.
   create_all:
-    name: create-all
+    name: create-destroy-cluster
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,10 +29,14 @@ jobs:
       matrix:
         python-version:
         - "3.9"
-        profile:
-        - "aws-ha"
-        - "aws-sno"
-        dist_version:
+        - "3.10"
+        test-env:
+        # provider-platform-profile
+        - "aws-none-ha"
+        # aws-sno is failing only in CI. Need more investigation to understand the root cause.
+        # to test it locally: bash tests/test_aws-sno_create_all-destroy.sh
+        #- "aws-none-sno"
+        dist-version:
         - "okd-4.12.0-0"
 
     # container: ubuntu
@@ -49,52 +53,36 @@ jobs:
         path: 'mtulio.okd_installer'
         submodules: recursive
         ref: tests-mock-aws-api
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    # Download project - can be removed when using on the repo
-    # - name: Cloding okd-installer
-    #   run: |
-    #     #mkdir -p ${HOME}/.ssh
-    #     #ssh-keygen -o -t rsa -C "ssh@github.com"
-    #     #ssh-keygen -q -t rsa -N '' -f ${HOME}/.ssh/id_rsa <<<y >/dev/null 2>&1
-    #     git clone --recursive -b tests-mock-aws-api git@github.com:mtulio/ansible-collection-okd-installer.git
-    # TODOget clients from cache
-    # - name: Start Mock/MotoServer
-    #   run: |
-    #     set -x
-    #     ./tests/run-mock-server-aws.sh
-    #     podman ps -a
     - name: Get pip cache dir
       id: pip-cache
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
-    - name: pip cache
+    - name: Set pip cache
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
-    - name: update pip
+    - name: Update pip
       run: |
         python -m pip install --upgrade pip
-    - name: Update pip and install dependencies
+    - name: Install python dependencies
       run: |
         pip install -r ./../requirements.txt
-        pip install 'moto[elbv2,vpc]' flask flask_cors
     - name: Get ansible cache dir
       id: ansible-cache
       run: |
         echo "dir=${HOME}/.ansible/collections" >> $GITHUB_OUTPUT
-    - name: ansible cache
+    - name: Set ansible cache
       uses: actions/cache@v3
       with:
         path: ${{ steps.ansible-cache.outputs.dir }}
         key: ansible-${{ matrix.python-version }}-${{ hashFiles('**/requirements.yml') }}
     - name: Install project dependencies
       run: |
-        #cd ./tests
         ansible-galaxy collection install -r ./../requirements.yml
         ansible-galaxy collection list
     - name: Set okd-installer cache dir
@@ -105,61 +93,45 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.okdi-cache.outputs.dir }}
-        key: okdi-${{ matrix.python-version }}
-
+        key: okdi-bins_${{ matrix.dist-version }}
     - name: create config
-      #working-directory: ./tests
       env:
-        VARS_FILE: "./vars-${{ matrix.profile }}.yaml"
+        VARS_FILE: "./vars-${{ matrix.test-env }}.yaml"
       run: |
         set -x
-        #cd ./tests
-        source config/${{ matrix.dist_version }}.env
-        envsubst < config/${{ matrix.profile }}.vars > $VARS_FILE
+        source config/${{ matrix.dist-version }}.env
+        envsubst < config/${{ matrix.test-env }}.vars > $VARS_FILE
         cat $VARS_FILE
-
-    - name: install clients
-      #working-directory: ./tests
+    - name: install client binaries
       env:
-        VARS_FILE: "./vars-${{ matrix.profile }}.yaml"
+        VARS_FILE: "./vars-${{ matrix.test-env }}.yaml"
       run: |
         ansible-playbook mtulio.okd_installer.install_clients -e @$VARS_FILE
         tree ~/.ansible/okd-installer/bin || true
-
     - name: create cluster
       env:
-        VARS_FILE: "./vars-${{ matrix.profile }}.yaml"
+        VARS_FILE: "./vars-${{ matrix.test-env }}.yaml"
       run: |
-        #cd ./tests
-        #ls collections/ansible_collections/mtulio/okd_installer/playbooks/vars/aws/profiles/SingleReplica/ || true
-        #cat /home/runner/work/lab-ghpages/lab-ghpages/mtulio.okd_installer/tests/collections/ansible_collections/mtulio/okd_installer/playbooks/vars/aws/profiles/SingleReplica/network.yaml || true
-        #export AWS_MOCK_ENDPOINT_MOTO="http://127.0.0.1:3000"
-
         set -x
         echo "Running create_all, the stdout will be suprised..."
-        ./run-play-steps.sh create_all #> /tmp/create.log
-        #tail -n 30 /tmp/create.log
+        ./run-play-steps.sh create_all
 
-        cat ~/.ansible/okd-installer/clusters/aws-ha-okd-412/cluster_state.json || true
-        cat ~/.ansible/okd-installer/clusters/aws-ha-okd-412/install-config-bkp.yaml || true
+        cat ~/.ansible/okd-installer/clusters/${{ matrix.test-env }}-okd/cluster_state.json || true
+        cat ~/.ansible/okd-installer/clusters/${{ matrix.test-env }}-okd/install-config-bkp.yaml || true
 
     - name: destroy cluster
       env:
-        VARS_FILE: "./vars-${{ matrix.profile }}.yaml"
+        VARS_FILE: "./vars-${{ matrix.test-env }}.yaml"
       run: |
-        #cd ./tests
         echo "Running destroy_cluster, the stdout will be suprised..."
-        set -x
-        #export AWS_MOCK_ENDPOINT_MOTO="http://127.0.0.1:3000"
-        ./run-play-steps.sh destroy_cluster #> /tmp/destroy.log
-        tail -n 30 /tmp/destroy.log
+        ./run-play-steps.sh destroy_cluster
 
     - name: Saving artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: okd-installer-artifacts
+        name: ${{ matrix.test-env }}-${{ matrix.dist-version }}
         retention-days: 5
         path: |
-          $HOME/.ansible/okd-installer/clusters/${{ matrix.profile }}-okd/cluster_state.json
-          $HOME/.ansible/okd-installer/clusters/${{ matrix.profile }}-okd/install-config-bkp.yaml
-          tests/vars-${{ matrix.profile }}.yaml
+          ~/.ansible/okd-installer/clusters/${{ matrix.test-env }}-okd/cluster_state.json
+          ~/.ansible/okd-installer/clusters/${{ matrix.test-env }}-okd/install-config-bkp.yaml
+          ./vars-${{ matrix.test-env }}.yaml
