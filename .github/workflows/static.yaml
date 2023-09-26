@@ -41,7 +41,7 @@ jobs:
           pip3 install -r hack/docs-requirements.txt
           git fetch origin gh-pages --depth=1
           GIT_COMMITTER_NAME=braga-bot GIT_COMMITTER_EMAIL=git@mtulio.eng.br \
-          mike deploy --push v0.3.x preview
+          mike deploy --push v0.3.x preview || true
       - name: Setup Pages
         uses: actions/configure-pages@v2
       - name: Upload artifact
