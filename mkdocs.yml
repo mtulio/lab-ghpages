@@ -28,7 +28,7 @@ theme:
   hljs_languages:
     - yaml
 nav:
-  - 'TODO.md'
+  - 'index.md'
   - OPCT:
     - 'Cluster AWS': opct/cluster-aws.md
   - Samples:

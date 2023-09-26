@@ -1,7 +1,11 @@
-#mkdocs==1.3.1
-mkdocs
+# framework
+mkdocs==1.5.3
+# thenme
 mkdocs-material
+# plugins
 mkdocs-mermaid2-plugin
+## versioning plugin: https://github.com/jimporter/mike
+mike
 
 # Require graphviz
 mkdocs-diagrams
