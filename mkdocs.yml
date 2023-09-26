@@ -3,6 +3,10 @@ site_url: https://mtulio.github.io/lab-ghpages
 docs_dir: ./docs
 dev_addr: 127.0.0.1:8000
 
+extra:
+  version:
+    provider: mike
+
 markdown_extensions:
   - pymdownx.superfences:
       custom_fences:
