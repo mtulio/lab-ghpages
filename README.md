@@ -37,10 +37,30 @@ git commit -m "version $VERSION" docs/index.md
 mike deploy --push $VERSION preview
 ```
 
+- create v0.4.x
+
+```bash
+VERSION=v0.4.x
+echo "version $VERSION" > docs/index.md &&\
+git add docs/index.md &&\
+git commit -m "version $VERSION" docs/index.md
+#mike deploy --push $VERSION preview
+```
+
+- create v0.5.x
+
+```bash
+VERSION=v0.5.x
+echo "version $VERSION" > docs/index.md &&\
+git add docs/index.md &&\
+git commit -m "version $VERSION" docs/index.md
+mike deploy --push $VERSION preview
+```
+
 - create warning
 
 - testing
 
 ```bash
- mike serve -a 0.0.0.0:8181
+mike serve -a 0.0.0.0:8181
 ```

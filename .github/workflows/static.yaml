@@ -43,14 +43,14 @@ jobs:
           git config user.name braga-bot
           git config user.email braga-bot@mtulio.eng.br
           GIT_COMMITTER_NAME=braga-bot GIT_COMMITTER_EMAIL=git@mtulio.eng.br \
-          mike deploy --push v0.3.x preview || true
-      - name: Setup Pages
-        uses: actions/configure-pages@v2
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
-        with:
-          # Upload entire repository
-          path: './site'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v1
+          mike deploy --push v0.3.x preview
+      #- name: Setup Pages
+      #  uses: actions/configure-pages@v2
+      #- name: Upload artifact
+      #  uses: actions/upload-pages-artifact@v1
+      #  with:
+      #    # Upload entire repository
+      #    path: './site'
+      #- name: Deploy to GitHub Pages
+      #  id: deployment
+      #  uses: actions/deploy-pages@v1
