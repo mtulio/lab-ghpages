@@ -23,9 +23,13 @@ with Diagram("OCP/OKD Cluster", show=False, filename="./opct-plugin"):
     openshift_icon = "openshift.png"
     urlretrieve(openshift_url, openshift_icon)
 
-    k8s_url = "https://cncf-branding.netlify.app/img/projects/kubernetes/stacked/color/kubernetes-stacked-color.png"
-    k8s_icon = "k8s.png"
-    urlretrieve(k8s_url, k8s_icon)
+    try:
+        k8s_url = "https://cncf-branding.netlify.app/img/projects/kubernetes/stacked/color/kubernetes-stacked-color.png"
+        k8s_icon = "k8s.png"
+        urlretrieve(k8s_url, k8s_icon)
+    except Exception as e:
+        print("ERROR unable to download k8s icon in the URL f{k8s_url}")
+        raise e
 
 
     with Cluster("VPC/Network"):
