@@ -40,6 +40,8 @@ jobs:
           sudo apt-get install -y python3-pip graphviz
           pip3 install -r hack/docs-requirements.txt
           git fetch origin gh-pages --depth=1
+          git config user.name braga-bot
+          git config user.email braga-bot@mtulio.eng.br
           GIT_COMMITTER_NAME=braga-bot GIT_COMMITTER_EMAIL=git@mtulio.eng.br \
           mike deploy --push v0.3.x preview || true
       - name: Setup Pages
