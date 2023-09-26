@@ -28,8 +28,8 @@ with Diagram("OCP/OKD Cluster", show=False, filename="./opct-plugin"):
         k8s_icon = "k8s.png"
         urlretrieve(k8s_url, k8s_icon)
     except Exception as e:
-        print("ERROR unable to download k8s icon in the URL f{k8s_url}")
-        raise e
+        print(f"ERROR unable to download k8s icon in the URL {k8s_url}")
+        #raise e
 
 
     with Cluster("VPC/Network"):
