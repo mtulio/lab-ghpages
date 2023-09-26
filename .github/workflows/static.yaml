@@ -39,6 +39,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-pip graphviz
           pip3 install -r hack/docs-requirements.txt
+          git fetch origin gh-pages --depth=1
+          GIT_COMMITTER_NAME=braga-bot GIT_COMMITTER_EMAIL=git@mtulio.eng.br \
           mike deploy --push v0.3.x preview
       - name: Setup Pages
         uses: actions/configure-pages@v2
